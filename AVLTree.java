@@ -236,21 +236,21 @@ public class AVLTree<T extends Comparable<T>> implements Iterable<T> {
     
     AVLNode<T> removedNodeParent;
     
-    // BST removal logic
+    
     if (isExternal(p.getLeft()) && isExternal(p.getRight())) {
-        // Case 1: Both children are external (leaf node)
+        // Case 1: Both children are leafs
         removedNodeParent = p.getParent();
         replaceParent(p, p.getLeft());
     } else if (isExternal(p.getLeft())) {
-        // Case 2: Left child is external
+        // Case 2 the left child is external
         removedNodeParent = p.getParent();
         replaceParent(p, p.getRight());
     } else if (isExternal(p.getRight())) {
-        // Case 3: Right child is external
+        // Case 3 is right child is external
         removedNodeParent = p.getParent();
         replaceParent(p, p.getLeft());
     } else {
-        // Case 4: Both children are internal
+        // Case 4 is if both children are internal
         AVLNode<T> succ = successor(p);
         p.setValue(succ.getValue());
         removedNodeParent = succ.getParent();
