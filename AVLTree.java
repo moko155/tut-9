@@ -36,10 +36,37 @@ public class AVLTree<T extends Comparable<T>> implements Iterable<T> {
 	}
 
 	public AVLNode<T> find(T data) {
-		// Left as a programming project
-		// Implement this iteratively
-		return null;
-	}
+    AVLNode<T> current = root;
+    
+    // If tree is empty, return root
+    if (current.getValue() == null) {
+        return current;
+    }
+    
+    // Traverse the tree
+    while (true) {
+        int comparison = data.compareTo(current.getValue());
+        
+        if (comparison == 0) {
+            // Found the data
+            return current;
+        } else if (comparison < 0) {
+            // Go left
+            if (current.getLeft().getValue() == null) {
+                // This is where data would belong
+                return current;
+            }
+            current = current.getLeft();
+        } else {
+            // Go right
+            if (current.getRight().getValue() == null) {
+                // This is where data would belong
+                return current;
+            }
+            current = current.getRight();
+        }
+    }
+}
 
 	private boolean isBalanced(AVLNode<T> node) {
 		int heightDiff = node.getLeft().getHeight() - node.getRight().getHeight();
@@ -73,9 +100,13 @@ public class AVLTree<T extends Comparable<T>> implements Iterable<T> {
 	}
 
 	private void LL(AVLNode<T> node) {
-		// Left as a programming project
-		// Refer to the code above in RR
-	}
+    AVLNode<T> newRoot = node.getLeft();
+    replaceParent(node, newRoot);
+    node.setLeft(newRoot.getRight());
+    node.getLeft().setParent(node);
+    newRoot.setRight(node);
+    node.setParent(newRoot);
+}
 
 	private void RL(AVLNode<T> node) {
 		AVLNode<T> newRoot = node.getRight().getLeft();
@@ -94,9 +125,20 @@ public class AVLTree<T extends Comparable<T>> implements Iterable<T> {
 	}
 
 	private void LR(AVLNode<T> node) {
-		// Left as a programming project
-		// Refer to the code above in RL
-	}
+    AVLNode<T> newRoot = node.getLeft().getRight();
+    AVLNode<T> otherNode = node.getLeft();
+    replaceParent(node, newRoot);
+    otherNode.setRight(newRoot.getLeft());
+    otherNode.getRight().setParent(otherNode);
+    node.setLeft(newRoot.getRight());
+    node.getLeft().setParent(node);
+
+    newRoot.setRight(node);
+    node.setParent(newRoot);
+
+    newRoot.setLeft(otherNode);
+    otherNode.setParent(newRoot);
+}
 
 	private void balance(AVLNode<T> node) {
 		if (node.getLeft().getHeight() < node.getRight().getHeight()) {
@@ -118,16 +160,62 @@ public class AVLTree<T extends Comparable<T>> implements Iterable<T> {
 
 	// return false if data is already in the tree
 	// return true if not and data is put into the tree
+	//put
 	public boolean put(T data) {
-		// Left as a programming project
-		// Refer to the tutorial description or the lecture notes
-		return true;
-	}
+    AVLNode<T> p = find(data);
+    
+    // Check if data already exists
+    if (p.getValue() != null && p.getValue().equals(data)) {
+        return false;
+    }
+    
+    // Create new node with external children
+    AVLNode<T> newNode = new AVLNode<>(data, null, 
+        new AVLNode<>(null, null, null, null),
+        new AVLNode<>(null, null, null, null));
+    newNode.getLeft().setParent(newNode);
+    newNode.getRight().setParent(newNode);
+    
+    // Insert into tree
+    if (p.getValue() == null) {
+        // Tree was empty, replace root
+        root = newNode;
+    } else {
+        // Insert as child of p
+        newNode.setParent(p);
+        int comparison = data.compareTo(p.getValue());
+        if (comparison < 0) {
+            p.setLeft(newNode);
+        } else {
+            p.setRight(newNode);
+        }
+    }
+    
+    count++;
+    
+    // Rebalance from inserted node up to root
+    AVLNode<T> current = newNode.getParent();
+    while (current != null) {
+        if (!isBalanced(current)) {
+            balance(current);
+        }
+        current = current.getParent();
+    }
+    
+    return true;
+}
 
 	private AVLNode<T> successor(AVLNode<T> node) {
-		// Left as a programming project
-		return null;
-	}
+    // Go to right child
+    AVLNode<T> current = node.getRight();
+    
+    // Go as far left as possible
+    while (current.getLeft().getValue() != null) {
+        current = current.getLeft();
+    }
+    
+    return current;
+}
 
 	private boolean isExternal(AVLNode<T> node) {
 		if (node.getLeft() == null && node.getRight() == null) {
@@ -139,10 +227,49 @@ public class AVLTree<T extends Comparable<T>> implements Iterable<T> {
 	// return false if data is not in the tree
 	// return true if data is in the tree and get removed
 	public boolean remove(T data) {
-		// Left as a programming project
-		// Refer to the tutorial description or the lecture notes
-		return true;
-	}
+    AVLNode<T> p = find(data);
+    
+    // Check if data exists in tree
+    if (p.getValue() == null || !p.getValue().equals(data)) {
+        return false;
+    }
+    
+    AVLNode<T> removedNodeParent;
+    
+    // BST removal logic
+    if (isExternal(p.getLeft()) && isExternal(p.getRight())) {
+        // Case 1: Both children are external (leaf node)
+        removedNodeParent = p.getParent();
+        replaceParent(p, p.getLeft());
+    } else if (isExternal(p.getLeft())) {
+        // Case 2: Left child is external
+        removedNodeParent = p.getParent();
+        replaceParent(p, p.getRight());
+    } else if (isExternal(p.getRight())) {
+        // Case 3: Right child is external
+        removedNodeParent = p.getParent();
+        replaceParent(p, p.getLeft());
+    } else {
+        // Case 4: Both children are internal
+        AVLNode<T> succ = successor(p);
+        p.setValue(succ.getValue());
+        removedNodeParent = succ.getParent();
+        replaceParent(succ, succ.getRight());
+    }
+    
+    count--;
+    
+    // Rebalance from removed node's parent up to root
+    AVLNode<T> current = removedNodeParent;
+    while (current != null) {
+        if (!isBalanced(current)) {
+            balance(current);
+        }
+        current = current.getParent();
+    }
+    
+    return true;
+}
 
 	public Iterator<T> iterator() {
 		ArrayList<T> list = new ArrayList<>();
